@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: k8s-demo
+  template:
+    metadata:
+      labels:
+        app: k8s-demo
+    spec:
+      containers:
+        - name: app
+          image: your-docker-user/k8s-demo:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_LABEL
+              value: "k8s-demo"
+            - name: APP_COLOR
+              value: ""            # optionally set fixed color
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          readinessProbe:
+            httpGet: { path: /ready, port: 8000 }
+            initialDelaySeconds: 2
+            periodSeconds: 2
+          livenessProbe:
+            httpGet: { path: /live, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-demo
+spec:
+  selector:
+    app: k8s-demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      nodePort: 30080
+  type: NodePort  # change to LoadBalancer if your cluster supports it
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: k8s-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: k8s-demo
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
