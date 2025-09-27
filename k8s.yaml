@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: your-docker-user/k8s-demo:latest
+          image: dewgenenny/k8s-demo:latest
           ports:
             - containerPort: 8000
           env:
